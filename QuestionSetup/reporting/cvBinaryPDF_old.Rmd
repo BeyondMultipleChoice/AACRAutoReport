@@ -1,0 +1,71 @@
+---
+title: "Thermodynamics Question Rubric Evaluation"
+output: pdf_document
+---
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE,cache=FALSE}
+library(XLConnect)
+library(printr)
+library(knitr)
+library(caret)
+fileIn <-"~/AACR/thermoQD/2015Data/q3v2.xlsx"
+question <-1
+        
+#------------------ Read in data ------------------------------------------------
+wkbk <- loadWorkbook(fileIn)               #load Excel file
+nSheets <- length(getSheets(wkbk))         #count number of sheets
+datIn <- readWorksheet(wkbk,sheet=nSheets) #load last worksheet to table
+if (length(datIn) == 0){datIn <- readWorksheet(wkbk,sheet=1)} #load worksheet to table
+
+#datIn <- datIn[complete.cases(datIn),] # remove NA entries
+datIn <- datIn[complete.cases(datIn[,1]),] # remove response==NA entries
+datIn[is.na(datIn)] <- 0
+
+load("~/AACR/thermoQD/q3cvV2.Rdata") #load leave-one-cv results
+
+# runCM <- function(x){
+#         confusionMatrix(matOut[,x],datIn[,x+1])
+# }
+# cmOut <- lapply(seq(ncol(matOut)),runCM)
+kappaOut <- as.numeric(sapply(seq(length(cmOut)),function(x) cmOut[[x]][["overall"]]["Kappa"]))
+
+rubricLevelNames <- gsub('[.]'," ",colnames(datIn))
+rubricLevelNames2 <- rubricLevelNames[2:length(rubricLevelNames)]
+```
+## Question 1
+
+### Summary
+
+Total number of scored responses: `r nrow(datIn)`
+
+```{r,echo=FALSE}
+sumTable <- rbind(colSums(datIn[,2:ncol(datIn)]),colSums(matOut),kappaOut)
+row.names(sumTable) <- c("Human","Machine","Kappa")
+colnames(sumTable) <- rubricLevelNames[2:ncol(datIn)]
+kable(t(sumTable),caption="Total responses per bin ")
+```
+
+### Bin details
+
+```{r,echo=FALSE,comment=NA,results="asis"}
+for(i in seq_along(rubricLevelNames2)){
+        cat(c("__Rubric Level:__",rubricLevelNames2[i],"\n"))
+#         print("   \n")
+        # print(cmOut[[i]])
+        # print(c())
+        print(kable(cmOut[[i]]$table,caption="Column - Human Scored, Row - Machine Scored"))
+        cat('\n')
+#         print("   \n")
+        print(kable(cmOut[[i]]$overall))
+        cat("\n")
+        print(kable(cmOut[[i]]$byClass))
+        cat("\n")
+        #         #kable(cmOut[[i]]$table)
+#         # junk <- cmOut[[i]]$table
+#         # print(kable(junk))
+#         print("   \n")
+}
+```
+```{r,echo=FALSE}
+
+```

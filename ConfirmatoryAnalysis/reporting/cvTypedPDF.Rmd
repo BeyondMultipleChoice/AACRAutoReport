@@ -1,0 +1,65 @@
+---
+title: "AACR Confirmatory Analysis: Model Cross Validation"
+output: pdf_document
+---
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE,cache=FALSE}
+library(knitr)
+library(tables)
+library(caret)
+# a <- sample(0:1,100,replace = TRUE)
+# b <- sample(0:1,100,replace = TRUE)
+# values <- list(cvOut=list())
+# values$cvOut[[1]] <- confusionMatrix(a,b)
+digitsFmt <- 3
+```
+
+Training set size per fold: `r paste0("N = ",values$trainLength)`  
+Total number of scored responses: `r values$scoreLength`   
+
+### Confusion Matrix
+
+```{r,echo=FALSE,comment=NA,message=FALSE,results='asis'}
+cat("\\begin{center}")
+latex(as.tabular(addmargins(values$cvOut[[1]]$table)))
+cat("\\end{center}")
+```
+
+### Overall Statistics
+
+```{r,echo=FALSE,comment=NA,results="asis",message=FALSE}
+tmp <- values$cvOut[[1]]$overall
+dfOut <- data.frame(
+        Kappa=round(tmp["Kappa"],digitsFmt),
+        Accuracy=round(tmp["Accuracy"],digitsFmt),
+        "Accuracy 95% CI"=paste(round(tmp["AccuracyLower"],digitsFmt),"-",round(tmp["AccuracyUpper"],digitsFmt)),
+        "No Information Rate"=round(tmp["AccuracyNull"],digitsFmt),
+        "P-Value [Acc > NIR]"=signif(tmp["AccuracyPValue"],digitsFmt),
+        "McNemar's Test P-Value"=signif(tmp["McnemarPValue"],digitsFmt),check.names = FALSE,row.names = NULL
+)
+print(kable(t(dfOut)))
+cat("\n")
+# print(kable(values$cvOut[[1]]$overall))
+# cat("\n")
+```
+
+### By Rubric Bin
+
+```{r,echo=FALSE,comment=NA,results="asis",message=FALSE}
+print(kable(t(values$cvOut[[1]]$byClass),digits=digitsFmt))
+# print(kable(values$cvOut[[1]]$byClass))
+cat("\n")
+```
+
+## Examination of Human/Machine Scoring Disagreement
+```{r,echo=FALSE,results='asis',comment=NA,message=FALSE}
+agreementPlot(values$histDF,fontSize=12)
+
+agreementPlotLevels(values$histDF,input$rubricType,fontSize=12)
+```
+
+## Expected Human/Machine Scoring Disagreements
+```{r,echo=FALSE}
+kable(agreementTable(values$histDF))
+```
+ 

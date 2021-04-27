@@ -1,0 +1,228 @@
+---
+title: "AACR Feedback Report"
+output: 
+  pdf_document:
+    includes:
+      in_header: header.tex
+---
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE,cache=FALSE}
+library(knitr)
+library(ggplot2)
+library(igraph)
+library(stringr)
+library(RColorBrewer)
+library(xtable)
+library(extrafont)
+library(tables)
+library(caret)
+library(tables)
+
+opts_chunk$set(cache=FALSE,echo=FALSE)
+```
+
+
+# Student Response Scoring
+## Rubric Level Distribution and Description
+
+**QUESTION: `r questionText`**
+
+For this question, your students fall into `r length(params$groupLevels)` `r params$groupType`s. Students with similar ideas fall into the same `r params$groupType`. The `r length(params$groupLevels)` `r params$groupType`s and the percentage of students in each `r params$groupType` are shown in the figure below.
+
+```{r,echo=FALSE,fig.height=4,message=FALSE,warning=FALSE}
+
+makeBinaryScoringPlot(params,static=TRUE)
+
+```
+
+<br>
+
+```{r,echo=FALSE,comment=NA,results='asis',cache=FALSE}
+print(kable(params$questionRubric[,c("Rubric Level","Description")],caption="Item Rubric"))
+
+```
+
+<br>
+
+```{r,results='asis'}
+nGroups <- length(groupLevels)
+tmpRBG <- params$responseByGroup[1,seq(1,2*nGroups,2)]
+t2 <- xtable(tmpRBG,caption=paste("Example Response of Each",params$groupType))
+if(ncol(tmpRBG)>4){
+        align(t2) <- paste0(c("l",rep(paste0("p{",floor(20/ncol(tmpRBG)),"cm}"),ncol(tmpRBG))),collapse="")
+        print(t2,include.rownames=FALSE,comment=FALSE,floating.environment='sidewaystable',caption.placement="top")
+}else{
+        align(t2) <- paste0(c("l",rep(paste0("p{",floor(15/ncol(tmpRBG)),"cm}"),ncol(tmpRBG))),collapse="")
+        print(t2,include.rownames=FALSE,comment=FALSE,caption.placement="top")
+}
+```
+
+
+\clearpage
+
+
+## Co-occurence of Rubric Levels
+
+### Co-occurence Frequencies
+
+The co-occurence freqencies displayed in the figures below describe the fraction of student responses which have been score for the rubric bin appearing in the title that also are scored for the rubric bins listed on the vertical axis.
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='asis',fig.height=3.5}
+for(gLevel in params$wdMenuList){
+        print(makeCooccurFreqPlot(values,params,as.numeric(gLevel),static=TRUE))
+        
+        
+        cat("\n\n")
+
+}
+```
+
+### Co-occurence Web Diagram
+The circular nodes in this plot correspond with the item rubric bins. The edges (lines) connecting the nodes correspond to co-occurence rates bewtween the rubric bins in the scored sample. In this diagram both nodes and edges are scaled in size and color to represent the range of rubric bin and co-occurence frequencies as shown in the figure keys.
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='asis',fig.height=3.5}
+makeCooccurWD(params,values,inset=-0.07)
+```
+
+
+### Conditional Probabilities
+The figures in the follow section display the probabilities of co-occurences between rubric bins. Each figure considers all the responses that have been scored for a given rubric bin and displays the proabilities that those bins have also been coded for the other rubric bins, relative to the occurance of those bins in the complete response set. The metric used here is refered to as the conditional probability. A conditional probability of 0.5 indicates that the rubric level responses repressented by the labled bar is half as likely to appear in responses which also are scored for the co-occurant rubric level as they do in the full response set. For a value of 1.3 the relevantly score responses occur 30 percent likely to appear with the co-occurant rubric level than is a given response drawn from the full response set.
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='asis',fig.height=3.5}
+
+for(gLevel in params$wdMenuList){
+        print(makeCondFreqPlot(values,params,gLevel,static=TRUE))
+        
+        cat("\n\n")
+
+}
+```
+
+$$ Conditional Frequency = \frac{\frac{N(Rubric Level|Co-occurant Rubric Level)}{N(Co-occurant Rubric Level)}}{\frac{N(Rubric Level)}{N}}$$
+
+
+\clearpage
+
+# Lexical Analysis
+## N-gram Overabundance by Rubric Level
+
+The n-gram overabundance provides a measure of the relative prevalence of a n-gram in a the set of resposes texts in a rubric bin. Specifically, overabundance measures the frequency of a n-gram in the response texts of a given rubric bin with respect to the full set of responses. An overabundance of 0.5 indicates that the n-gram appears 50% more frequently in the responses of the specified rubric bin that it does in the overall set of responses. A value of -0.25 means that the n-gram occurs 25% less often in the relevant rubric bin and than in the overall set.  
+
+```{r,results='asis'}
+t3 <- xtable(head(params$oAbDF,10),caption=paste("Overabundance (OA) of most frequent n-grams by",params$groupType))
+if(ncol(params$oAbDF)>10){
+        align(t3) <- c("l",rep(c(paste0("p{",floor(20/(ncol(params$oAbDF)))*1.5,"cm}"),paste0("p{",floor(20/(ncol(params$oAbDF)))*0.5,"cm}")),ncol(params$oAbDF)/2))
+        print(t3,include.rownames=FALSE,comment=FALSE,floating.environment='sidewaystable',caption.placement="top")
+}else{
+        align(t3) <- c("l",rep(">{\\raggedright}X",(ncol(params$oAbDF)-1)),"X")
+        print(t3,include.rownames=FALSE,comment=FALSE,caption.placement='top',
+              tabular.environment="tabularx",width="\\textwidth", table.placement="!h")
+        
+}
+
+```
+
+$$ Overabundace = \frac{\frac{N(term|score)}{N(score)}-\frac{N(term)}{N}}{\frac{N(term)}{N}}$$
+
+\clearpage
+
+## Overabundant N-gram Web Diagrams
+
+The web diagrams shown here display the frequency and co-occurence rates of the most overabundant n-grams in each rubric bin. The circular node symbols display the frequency of n-gram occurence as a fraction of responses scored in the rubric bin which contain a given n-gram. The lines connecting the nodes indicate the frequency for which the two connected n-grams appear together as a fraction of responses in the rubric bin.
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='asis'}
+for(gLevel in params$wdMenuList){
+        makeWebDiagram(params,values,gLevel,inset=-0.07)
+        
+        cat("\n\n")
+}
+```
+
+\clearpage
+
+## N-gram Correlation Maps
+
+The following correlation maps show the most common n-grams for each rubric bin and there mutual correlations represented as an network graph. Each n-gram is displayed as a node, with highly correlated n-grams being connected with lines. The thicker the line connecting two n-grams the stronger they are correlated in the rubric bins response set. Highly correlated groups or clusters of n-grams represent common phrases, sentances, and concepts appearing in student responses.
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+probThreshold <- 0
+corThreshold <- 0.3
+minNumTerms <- 5
+maxNumTerms <- 25
+
+for(gLevel in params$wdMenuList){
+        rubricLevelIndex <- values$predict[[as.numeric(gLevel)]]$rubricLevel==1 &
+                values$predict[[as.numeric(gLevel)]]$probability>probThreshold
+        dtmTmp <- values$docTermMat[rubricLevelIndex,]
+        minFreq <- ifelse(length(findFreqTerms(dtmTmp,lowfreq = 15))>minNumTerms,15,findMinFreq(dtmTmp)) #find minimum minimum frequency
+        minFreq <- ifelse(length(findFreqTerms(dtmTmp,lowfreq = minFreq))>maxNumTerms,findMinFreq(dtmTmp,maxNumTerms),minFreq) #find maximum minimum frequency
+        
+        makeTermMap(dtmTmp,minFreq,corThreshold)
+        title(names(params$wdMenuList[gLevel]))
+        
+        cat("\n\n")
+}
+```
+
+\clearpage
+
+# Training Set Scoring Model Performance
+## Scoring Model Cross Validation
+**Please Note:** The data in the following section refers to the cross validation of the scoring model training set. This data does not refer to the data uploaded and scored in the production of this Instructor Feedback Report. It is presented to give the background information on the performance of the `r params$questionText` item scoring model.
+
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE,cache=FALSE}
+kappaOut <- as.numeric(sapply(seq(length(values$cvOut)),function(x) values$cvOut[[x]][["overall"]]["Kappa"]))
+matOut <- as.numeric(sapply(seq(length(values$cvOut)),function(x) sum(values$cvOut[[x]][["table"]][2,])))
+matIn <- as.numeric(sapply(seq(length(values$cvOut)),function(x) sum(values$cvOut[[x]][["table"]][,2])))
+
+```
+
+### Summary
+Training set site per fold: N= `r values$trainLength`  
+Total number of scored responses: `r values$scoreLength` 
+
+```{r,echo=FALSE}
+rubricLevelNames <- params$questionRubric[,"Rubric Level"]
+sumTable <- rbind(matIn,matOut,kappaOut)
+row.names(sumTable) <- c("Human","Machine","Kappa")
+colnames(sumTable) <- values$rubricLevelNames
+kable(t(sumTable),caption="Total responses per bin ",digits=3)
+```
+
+```{r,echo=FALSE,comment=NA,message=FALSE,results='asis'}
+i<-1
+for(cvTmp in values$cvOut){
+        cat("\n\\pagebreak\n\n")
+        cat(paste("## Rubric Bin:",rubricLevelNames[i],"\n"))
+        cat("### Confusion Matrix")
+        cat("\n")
+
+        cat("\\begin{center}")
+        latex(as.tabular(cvTmp$table))
+        cat("\\end{center}")
+        cat("\n")
+
+        cat("### Overall Statistics")
+        cat("\n")
+        dfOut <- data.frame(
+                Kappa=round(cvTmp$overall["Kappa"],3),
+                Accuracy=round(cvTmp$overall["Accuracy"],3),
+                "Accuracy 95% CI"=paste(round(cvTmp$overall["AccuracyLower"],digits=3),"-",round(cvTmp$overall["AccuracyUpper"],digits=3)),
+                "No Information Rate"=round(cvTmp$overall["AccuracyNull"],3),
+                "P-Value [Acc > NIR]"=signif(cvTmp$overall["AccuracyPValue"],3),
+                "McNemar's Test P-Value"=signif(cvTmp$overall["McnemarPValue"],3),check.names = FALSE,row.names = NULL
+        )
+        print(kable(t(dfOut),digits=3))
+        cat("\n")
+        
+        cat("### By Rubric Bin")
+        cat("\n")
+        print(kable(cvTmp$byClass,digits=3))
+        cat("\n")
+        i<- i+1
+}
+        
+        
+```

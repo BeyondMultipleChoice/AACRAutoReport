@@ -1,0 +1,16 @@
+---
+title: "AACR Instructor Feedback Report"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+<META NAME="ROBOTS" CONTENT="NOINDEX, NOFOLLOW">
+
+## AACR Item: `r input$question`
+
+```{r,echo=FALSE,results='asis'}
+cat(paste0("### [HTML Report](",paste0(file_path_sans_ext(values$fileIn$name),".html"),")"))
+cat("<br>")
+cat(paste0("[PDF Report](",paste0(file_path_sans_ext(values$fileIn$name),".pdf"),")"))
+
+```

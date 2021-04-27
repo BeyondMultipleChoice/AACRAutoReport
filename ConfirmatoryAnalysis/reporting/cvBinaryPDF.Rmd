@@ -1,0 +1,79 @@
+---
+title: "AACR Confirmatory Analysis: Model Cross Validation"
+output: pdf_document
+---
+
+```{r,echo=FALSE,results='hide',warning=FALSE,message=FALSE,cache=FALSE}
+library(knitr)
+library(tables)
+
+kappaOut <- as.numeric(sapply(seq(length(values$cvOut)),function(x) values$cvOut[[x]][["overall"]]["Kappa"]))
+matOut <- as.numeric(sapply(seq(length(values$cvOut)),function(x) sum(values$cvOut[[x]][["table"]][2,])))
+matIn <- as.numeric(sapply(seq(length(values$cvOut)),function(x) sum(values$cvOut[[x]][["table"]][,2])))
+
+# rubricLevelNames <- gsub('[.]'," ",colnames(datIn()))
+# rubricLevelNames2 <- values$rubricLevelNames[2:length(values$rubricLevelNames)]
+```
+
+### Summary
+Training set site per fold: N= `r values$trainLength`  
+Total number of scored responses: `r values$scoreLength` 
+
+```{r,echo=FALSE}
+sumTable <- rbind(matIn,matOut,kappaOut)
+row.names(sumTable) <- c("Human","Machine","Kappa")
+colnames(sumTable) <- values$rubricLevelNames
+kable(t(sumTable),caption="Total responses per bin ",digits=3)
+```
+
+```{r,echo=FALSE,comment=NA,message=FALSE,results='asis'}
+i<-1
+for(cvTmp in values$cvOut){
+        cat("\n\\pagebreak\n\n")
+        cat(paste("## Rubric Bin:",values$rubricLevelNames[i],"\n"))
+        cat("### Confusion Matrix")
+        cat("\n")
+
+        cat("\\begin{center}")
+        latex(as.tabular(addmargins(cvTmp$table)))
+        cat("\\end{center}")
+        cat("\n")
+
+        cat("### Overall Statistics")
+        cat("\n")
+        dfOut <- data.frame(
+                Kappa=round(cvTmp$overall["Kappa"],3),
+                Accuracy=round(cvTmp$overall["Accuracy"],3),
+                "Accuracy 95% CI"=paste(round(cvTmp$overall["AccuracyLower"],digits=3),"-",round(cvTmp$overall["AccuracyUpper"],digits=3)),
+                "No Information Rate"=round(cvTmp$overall["AccuracyNull"],3),
+                "P-Value [Acc > NIR]"=signif(cvTmp$overall["AccuracyPValue"],3),
+                "McNemar's Test P-Value"=signif(cvTmp$overall["McnemarPValue"],3),check.names = FALSE,row.names = NULL
+        )
+        print(kable(t(dfOut),digits=3))
+        cat("\n")
+#         print(kable(cvTmp$overall,digits=3))
+#         cat("\n")
+        
+        cat("### By Rubric Bin")
+        cat("\n")
+        # print(kable(t(cvTmp$byClass)))
+        print(kable(cvTmp$byClass,digits=3))
+        cat("\n")
+        i<- i+1
+}
+        
+        
+```
+
+## Examination of Human/Machine Scoring Disagreement
+```{r,echo=FALSE,results='asis',comment=NA}
+agreementPlot(values$histDF,fontSize=12)
+
+agreementPlotLevels(values$histDF,input$rubricType,fontSize=12)
+```
+
+## Expected Human/Machine Scoring Disagreements
+```{r,echo=FALSE}
+kable(agreementTable(values$histDF))
+```
+
